@@ -191,14 +191,14 @@ func (base *wheeledBase) differentialDrive(forward, left float64) (float64, floa
 
 func (base *wheeledBase) SetVelocity(ctx context.Context, linear, angular r3.Vector, extra map[string]interface{}) error {
 	base.opMgr.CancelRunning(ctx)
-	l, r := base.velocityMath(linear.Y, angular.Z)
+	l, r := base.velocityMath(linear.X, angular.Z)
 	return base.runAll(ctx, l, 0, r, 0)
 }
 
 func (base *wheeledBase) SetPower(ctx context.Context, linear, angular r3.Vector, extra map[string]interface{}) error {
 	base.opMgr.CancelRunning(ctx)
 
-	lPower, rPower := base.differentialDrive(linear.Y, angular.Z)
+	lPower, rPower := base.differentialDrive(linear.X, angular.Z)
 
 	// Send motor commands
 	var err error

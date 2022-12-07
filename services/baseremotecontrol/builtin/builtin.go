@@ -461,9 +461,9 @@ func parseEvent(mode controlMode, state *throttleState, event input.Event) (r3.V
 	case triggerSpeedControl:
 		newLinear.Y, newAngular.Z = triggerSpeedEvent(event, state.linearThrottle.Y, state.angularThrottle.Z)
 	case buttonControl:
-		newLinear.Y, newAngular.Z, state.buttons = buttonControlEvent(event, state.buttons)
+		newLinear.X, newAngular.Z, state.buttons = buttonControlEvent(event, state.buttons)
 	case arrowControl:
-		newLinear.Y, newAngular.Z, state.arrows = arrowEvent(event, state.arrows)
+		newLinear.X, newAngular.Z, state.arrows = arrowEvent(event, state.arrows)
 	}
 
 	return newLinear, newAngular
