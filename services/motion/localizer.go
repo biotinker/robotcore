@@ -2,6 +2,7 @@ package motion
 
 import (
 	"context"
+	"fmt"
 	"math"
 
 	geo "github.com/kellydunn/golang-geo"
