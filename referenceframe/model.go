@@ -69,7 +69,7 @@ func (m *SimpleModel) ModelConfig() *ModelConfig {
 func (m *SimpleModel) Transform(inputs []Input) (spatialmath.Pose, error) {
 	frames, err := m.inputsToFrames(inputs, false)
 	if err != nil && frames == nil {
-		return nil, err
+		return spatialmath.Pose{}, err
 	}
 	return frames[0].transform, err
 }
@@ -137,7 +137,7 @@ func (m *SimpleModel) CachedTransform(inputs []Input) (spatialmath.Pose, error) 
 	}
 	poses, err := m.inputsToFrames(inputs, false)
 	if err != nil && poses == nil {
-		return nil, err
+		return spatialmath.Pose{}, err
 	}
 	m.poseCache.Store(key, poses[len(poses)-1].transform)
 
@@ -190,7 +190,7 @@ func (m *SimpleModel) inputsToFrames(inputs []Input, collectAll bool) ([]*static
 
 		pose, errNew := transform.Transform(input)
 		// Fail if inputs are incorrect and pose is nil, but allow querying out-of-bounds positions
-		if pose == nil || (err != nil && !strings.Contains(err.Error(), OOBErrString)) {
+		if err != nil && !strings.Contains(err.Error(), OOBErrString) {
 			return nil, err
 		}
 		multierr.AppendInto(&err, errNew)

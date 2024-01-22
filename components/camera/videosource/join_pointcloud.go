@@ -202,16 +202,16 @@ func (jpcc *joinPointCloudCamera) NextPointCloudNaive(ctx context.Context) (poin
 				sourceFrame := referenceframe.NewPoseInFrame(jpcc.sourceNames[iCopy], spatialmath.NewZeroPose())
 				theTransform, err := fs.Transform(inputs, sourceFrame, jpcc.targetName)
 				if err != nil {
-					return nil, nil, err
+					return nil, spatialmath.Pose{}, err
 				}
 				framePose = theTransform.(*referenceframe.PoseInFrame).Pose()
 			}
 			pc, err := camCopy.NextPointCloud(ctx)
 			if err != nil {
-				return nil, nil, err
+				return nil, spatialmath.Pose{}, err
 			}
 			if pc == nil {
-				return nil, nil, errors.Errorf("camera %q returned a nil point cloud", jpcc.sourceNames[iCopy])
+				return nil, spatialmath.Pose{}, errors.Errorf("camera %q returned a nil point cloud", jpcc.sourceNames[iCopy])
 			}
 			return pc, framePose, nil
 		}

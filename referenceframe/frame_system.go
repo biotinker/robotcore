@@ -388,7 +388,7 @@ func (sfs *simpleFrameSystem) DivideFrameSystem(newRoot Frame) (FrameSystem, err
 
 func (sfs *simpleFrameSystem) getFrameToWorldTransform(inputMap map[string][]Input, src Frame) (spatial.Pose, error) {
 	if !sfs.frameExists(src.Name()) {
-		return nil, NewFrameMissingError(src.Name())
+		return spatial.Pose{}, NewFrameMissingError(src.Name())
 	}
 
 	// If src is nil it is interpreted as the world frame
@@ -396,8 +396,8 @@ func (sfs *simpleFrameSystem) getFrameToWorldTransform(inputMap map[string][]Inp
 	srcToWorld := spatial.NewZeroPose()
 	if src != nil {
 		srcToWorld, err = sfs.composeTransforms(src, inputMap)
-		if err != nil && srcToWorld == nil {
-			return nil, err
+		if err != nil {
+			return spatial.Pose{}, err
 		}
 	}
 	return srcToWorld, err
@@ -444,7 +444,7 @@ func (sfs *simpleFrameSystem) transformFromParent(inputMap map[string][]Input, s
 	multierr.AppendInto(&errAll, err)
 	srcToWorld, err := sfs.getFrameToWorldTransform(inputMap, src)
 	multierr.AppendInto(&errAll, err)
-	if errAll != nil && (dstToWorld == nil || srcToWorld == nil) {
+	if errAll != nil {
 		return nil, errAll
 	}
 
@@ -459,8 +459,8 @@ func (sfs *simpleFrameSystem) composeTransforms(frame Frame, inputMap map[string
 	for sfs.parents[frame] != nil { // stop once you reach world node
 		// Transform() gives FROM q TO parent. Add new transforms to the left.
 		pose, err := poseFromPositions(frame, inputMap)
-		if err != nil && pose == nil {
-			return nil, err
+		if err != nil {
+			return spatial.Pose{}, err
 		}
 		multierr.AppendInto(&errAll, err)
 		q = spatial.Compose(pose, q)
@@ -708,7 +708,7 @@ func TopologicallySortParts(parts []*FrameSystemPart) ([]*FrameSystemPart, error
 func poseFromPositions(frame Frame, positions map[string][]Input) (spatial.Pose, error) {
 	inputs, err := GetFrameInputs(frame, positions)
 	if err != nil {
-		return nil, err
+		return spatial.Pose{}, err
 	}
 	return frame.Transform(inputs)
 }

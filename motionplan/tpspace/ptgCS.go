@@ -75,7 +75,7 @@ func (ptg *ptgCS) Transform(inputs []referenceframe.Input) (spatialmath.Pose, er
 	if alpha != 0 {
 		arcPose, err = circle.Transform([]referenceframe.Input{{flip * math.Pi}, {direction * math.Min(dist, arcDistance)}})
 		if err != nil {
-			return nil, err
+			return spatialmath.Pose{}, err
 		}
 	}
 	if dist < arcDistance {
@@ -83,7 +83,7 @@ func (ptg *ptgCS) Transform(inputs []referenceframe.Input) (spatialmath.Pose, er
 	}
 	fwdPose, err := circle.Transform([]referenceframe.Input{{0}, {direction * (dist - arcDistance)}})
 	if err != nil {
-		return nil, err
+		return spatialmath.Pose{}, err
 	}
 	return spatialmath.Compose(arcPose, fwdPose), nil
 }

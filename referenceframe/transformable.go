@@ -89,9 +89,6 @@ func (lF *LinkInFrame) ToStaticFrame(name string) (Frame, error) {
 		name = lF.name
 	}
 	pose := lF.pose
-	if pose == nil {
-		pose = spatialmath.NewZeroPose()
-	}
 	if lF.geometry != nil {
 		// deep copy geometry
 		newGeom := lF.geometry.Transform(spatialmath.NewZeroPose())
@@ -105,9 +102,7 @@ func (lF *LinkInFrame) ToStaticFrame(name string) (Frame, error) {
 // PoseInFrameToProtobuf converts a PoseInFrame struct to a PoseInFrame protobuf message.
 func PoseInFrameToProtobuf(framedPose *PoseInFrame) *commonpb.PoseInFrame {
 	poseProto := &commonpb.Pose{}
-	if framedPose.pose != nil {
-		poseProto = spatialmath.PoseToProtobuf(framedPose.pose)
-	}
+	poseProto = spatialmath.PoseToProtobuf(framedPose.pose)
 	return &commonpb.PoseInFrame{
 		ReferenceFrame: framedPose.parent,
 		Pose:           poseProto,

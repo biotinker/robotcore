@@ -130,7 +130,7 @@ func (a *Arm) ModelFrame() referenceframe.Model {
 func (a *Arm) EndPosition(ctx context.Context, extra map[string]interface{}) (spatialmath.Pose, error) {
 	joints, err := a.JointPositions(ctx, extra)
 	if err != nil {
-		return nil, err
+		return spatialmath.Pose{}, err
 	}
 	a.mu.RLock()
 	defer a.mu.RUnlock()

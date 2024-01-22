@@ -422,7 +422,7 @@ func (x *xArm) MoveToJointPositions(ctx context.Context, newPositions *pb.JointP
 func (x *xArm) EndPosition(ctx context.Context, extra map[string]interface{}) (spatialmath.Pose, error) {
 	joints, err := x.JointPositions(ctx, extra)
 	if err != nil {
-		return nil, err
+		return spatialmath.Pose{}, err
 	}
 	return motionplan.ComputePosition(x.model, joints)
 }

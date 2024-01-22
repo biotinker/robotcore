@@ -87,12 +87,8 @@ func (nm *neighborManager) nearestNeighbor(
 			StartConfiguration: seed.Q(),
 			EndConfiguration:   k.Q(),
 		}
-		if pose := seed.Pose(); pose != nil {
-			seg.StartPosition = pose
-		}
-		if pose := k.Pose(); pose != nil {
-			seg.EndPosition = pose
-		}
+		seg.StartPosition = seed.Pose()
+		seg.EndPosition = k.Pose()
 		dist := planOpts.DistanceFunc(seg)
 		if dist < bestDist {
 			bestDist = dist
@@ -166,12 +162,8 @@ func (nm *neighborManager) nnWorker(ctx context.Context, planOpts *plannerOption
 			StartConfiguration: nm.seedPos.Q(),
 			EndConfiguration:   candidate.Q(),
 		}
-		if pose := nm.seedPos.Pose(); pose != nil {
-			seg.StartPosition = pose
-		}
-		if pose := candidate.Pose(); pose != nil {
-			seg.EndPosition = pose
-		}
+		seg.StartPosition = nm.seedPos.Pose()
+		seg.EndPosition = candidate.Pose()
 		dist := planOpts.DistanceFunc(seg)
 		if dist < bestDist {
 			bestDist = dist

@@ -61,14 +61,14 @@ func NewClientFromConn(
 func (c *client) EndPosition(ctx context.Context, extra map[string]interface{}) (spatialmath.Pose, error) {
 	ext, err := protoutils.StructToStructPb(extra)
 	if err != nil {
-		return nil, err
+		return spatialmath.Pose{}, err
 	}
 	resp, err := c.client.GetEndPosition(ctx, &pb.GetEndPositionRequest{
 		Name:  c.name,
 		Extra: ext,
 	})
 	if err != nil {
-		return nil, err
+		return spatialmath.Pose{}, err
 	}
 	return spatialmath.NewPoseFromProtobuf(resp.Pose), nil
 }

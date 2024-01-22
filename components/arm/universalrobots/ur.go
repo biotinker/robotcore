@@ -345,7 +345,7 @@ func (ua *URArm) JointPositions(ctx context.Context, extra map[string]interface{
 func (ua *URArm) EndPosition(ctx context.Context, extra map[string]interface{}) (spatialmath.Pose, error) {
 	joints, err := ua.JointPositions(ctx, extra)
 	if err != nil {
-		return nil, err
+		return spatialmath.Pose{}, err
 	}
 	return motionplan.ComputeOOBPosition(ua.model, joints)
 }

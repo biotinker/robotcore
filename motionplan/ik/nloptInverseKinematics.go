@@ -123,7 +123,7 @@ func (ik *NloptIK) Solve(ctx context.Context,
 
 		inputs := referenceframe.FloatsToInputs(x)
 		eePos, err := ik.model.Transform(inputs)
-		if eePos == nil || (err != nil && !strings.Contains(err.Error(), referenceframe.OOBErrString)) {
+		if err != nil && !strings.Contains(err.Error(), referenceframe.OOBErrString) {
 			ik.logger.CErrorw(ctx, "error calculating eePos in nlopt", "error", err)
 			err = opt.ForceStop()
 			ik.logger.CErrorw(ctx, "forcestop error", "error", err)
@@ -146,7 +146,7 @@ func (ik *NloptIK) Solve(ctx context.Context,
 				}
 
 				eePos, err := ik.model.Transform(inputs)
-				if eePos == nil || (err != nil && !strings.Contains(err.Error(), referenceframe.OOBErrString)) {
+				if err != nil && !strings.Contains(err.Error(), referenceframe.OOBErrString) {
 					ik.logger.CErrorw(ctx, "error calculating eePos in nlopt", "error", err)
 					err = opt.ForceStop()
 					ik.logger.CErrorw(ctx, "forcestop error", "error", err)

@@ -41,7 +41,7 @@ func (cp *CamPose) Pose() (spatialmath.Pose, error) {
 	translation := r3.Vector{cp.Translation.At(0, 0), cp.Translation.At(1, 0), cp.Translation.At(2, 0)}
 	rotation, err := spatialmath.NewRotationMatrix(cp.Rotation.RawMatrix().Data)
 	if err != nil {
-		return nil, err
+		return spatialmath.Pose{}, err
 	}
 	return spatialmath.NewPose(translation, rotation), err
 }

@@ -208,13 +208,13 @@ func (ptgk *ptgBaseKinematics) GoToInputs(ctx context.Context, inputs []referenc
 
 func (ptgk *ptgBaseKinematics) ErrorState(ctx context.Context, plan [][]referenceframe.Input, currentNode int) (spatialmath.Pose, error) {
 	if currentNode < 0 || currentNode >= len(plan) {
-		return nil, fmt.Errorf("cannot get ErrorState for node %d, must be >= 0 and less than plan length %d", currentNode, len(plan))
+		return spatialmath.Pose{}, fmt.Errorf("cannot get ErrorState for node %d, must be >= 0 and less than plan length %d", currentNode, len(plan))
 	}
 
 	// Get pose-in-frame of the base via its localizer. The offset between the localizer and its base should already be accounted for.
 	actualPIFRaw, err := ptgk.CurrentPosition(ctx)
 	if err != nil {
-		return nil, err
+		return spatialmath.Pose{}, err
 	}
 	actualPIF := spatialmath.PoseBetween(ptgk.origin, actualPIFRaw.Pose())
 
@@ -228,7 +228,7 @@ func (ptgk *ptgBaseKinematics) ErrorState(ctx context.Context, plan [][]referenc
 		wp := plan[i]
 		wpPose, err := ptgk.frame.Transform(wp)
 		if err != nil {
-			return nil, err
+			return spatialmath.Pose{}, err
 		}
 		runningPose = spatialmath.Compose(runningPose, wpPose)
 	}
@@ -236,11 +236,11 @@ func (ptgk *ptgBaseKinematics) ErrorState(ctx context.Context, plan [][]referenc
 	// Determine how far through the current trajectory we are
 	currentInputs, err := ptgk.CurrentInputs(ctx)
 	if err != nil {
-		return nil, err
+		return spatialmath.Pose{}, err
 	}
 	currPose, err := ptgk.frame.Transform(currentInputs)
 	if err != nil {
-		return nil, err
+		return spatialmath.Pose{}, err
 	}
 	nominalPose = spatialmath.Compose(runningPose, currPose)
 

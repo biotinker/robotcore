@@ -187,7 +187,7 @@ func (sf *solverFrame) Name() string {
 // Transform returns the pose between the two frames of this solver for a given set of inputs.
 func (sf *solverFrame) Transform(inputs []frame.Input) (spatial.Pose, error) {
 	if len(inputs) != len(sf.DoF()) {
-		return nil, frame.NewIncorrectInputLengthError(len(inputs), len(sf.DoF()))
+		return spatial.Pose{}, frame.NewIncorrectInputLengthError(len(inputs), len(sf.DoF()))
 	}
 	pf := frame.NewPoseInFrame(sf.solveFrame.Name(), spatial.NewZeroPose())
 	solveName := sf.goalFrame.Name()
@@ -196,7 +196,7 @@ func (sf *solverFrame) Transform(inputs []frame.Input) (spatial.Pose, error) {
 	}
 	tf, err := sf.fss.Transform(sf.sliceToMap(inputs), pf, solveName)
 	if err != nil {
-		return nil, err
+		return spatial.Pose{}, err
 	}
 	return tf.(*frame.PoseInFrame).Pose(), nil
 }
@@ -405,7 +405,6 @@ func PlanToPlanSteps(
 		return nil, err
 	}
 
-	if startPose == nil {
 		seed, err := sf.mapToSlice(planRequest.StartConfiguration)
 		if err != nil {
 			return nil, err
@@ -415,7 +414,6 @@ func PlanToPlanSteps(
 			return nil, err
 		}
 		startPose = spatial.NewPose(planNodes[0].Pose().Point(), seedPose.Orientation())
-	}
 
 	runningPoseWOrient := startPose
 	planSteps := []PlanStep{}

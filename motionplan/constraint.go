@@ -4,7 +4,7 @@ package motionplan
 
 import (
 	"errors"
-	"fmt"
+	//~ "fmt"
 	"math"
 
 	"github.com/golang/geo/r3"
@@ -18,7 +18,6 @@ import (
 
 // Given a constraint input with only frames and input positions, calculates the corresponding poses as needed.
 func resolveSegmentsToPositions(segment *ik.Segment) error {
-	if segment.StartPosition == nil {
 		if segment.Frame != nil {
 			if segment.StartConfiguration != nil {
 				pos, err := segment.Frame.Transform(segment.StartConfiguration)
@@ -33,8 +32,6 @@ func resolveSegmentsToPositions(segment *ik.Segment) error {
 		} else {
 			return errors.New("invalid constraint input")
 		}
-	}
-	if segment.EndPosition == nil {
 		if segment.Frame != nil {
 			if segment.EndConfiguration != nil {
 				pos, err := segment.Frame.Transform(segment.EndConfiguration)
@@ -49,13 +46,11 @@ func resolveSegmentsToPositions(segment *ik.Segment) error {
 		} else {
 			return errors.New("invalid constraint input")
 		}
-	}
 	return nil
 }
 
 // Given a constraint input with only frames and input positions, calculates the corresponding poses as needed.
 func resolveStatesToPositions(state *ik.State) error {
-	if state.Position == nil {
 		if state.Frame != nil {
 			if state.Configuration != nil {
 				pos, err := state.Frame.Transform(state.Configuration)
@@ -70,7 +65,6 @@ func resolveStatesToPositions(state *ik.State) error {
 		} else {
 			return errInvalidConstraint
 		}
-	}
 	return nil
 }
 
@@ -283,24 +277,24 @@ func createAllCollisionConstraints(
 		static := obstacles.Geometries()
 		// Check if a moving geometry is in collision with a pointcloud. If so, error.
 		// TODO: This is not the most robust way to deal with this but is better than driving through walls.
-		var zeroCG *collisionGraph
-		for _, geom := range static {
-			if octree, ok := geom.(*pointcloud.BasicOctree); ok {
-				if zeroCG == nil {
-					zeroCG, err = setupZeroCG(moving, static, allowedCollisions)
-					if err != nil {
-						return nil, err
-					}
-				}
-				for _, collision := range zeroCG.collisions() {
-					if collision.name1 == octree.Label() {
-						return nil, fmt.Errorf("starting collision between SLAM map and %s, cannot move", collision.name2)
-					} else if collision.name2 == octree.Label() {
-						return nil, fmt.Errorf("starting collision between SLAM map and %s, cannot move", collision.name1)
-					}
-				}
-			}
-		}
+		//~ var zeroCG *collisionGraph
+		//~ for _, geom := range static {
+			//~ if octree, ok := geom.(*pointcloud.BasicOctree); ok {
+				//~ if zeroCG == nil {
+					//~ zeroCG, err = setupZeroCG(moving, static, allowedCollisions)
+					//~ if err != nil {
+						//~ return nil, err
+					//~ }
+				//~ }
+				//~ for _, collision := range zeroCG.collisions() {
+					//~ if collision.name1 == octree.Label() {
+						//~ return nil, fmt.Errorf("starting collision between SLAM map and %s, cannot move", collision.name2)
+					//~ } else if collision.name2 == octree.Label() {
+						//~ return nil, fmt.Errorf("starting collision between SLAM map and %s, cannot move", collision.name1)
+					//~ }
+				//~ }
+			//~ }
+		//~ }
 
 		// create constraint to keep moving geometries from hitting world state obstacles
 		obstacleConstraint, err := NewCollisionConstraint(moving, static, allowedCollisions, false)
@@ -366,7 +360,7 @@ func NewCollisionConstraint(
 				return false
 			}
 			internalGeoms = internal.Geometries()
-		case state.Position != nil:
+		default:
 			// If we didn't pass a Configuration, but we do have a Position, then get the geometries at the zero state and
 			// transform them to the Position
 			internal, err := state.Frame.Geometries(make([]referenceframe.Input, len(state.Frame.DoF())))
@@ -377,8 +371,6 @@ func NewCollisionConstraint(
 			for _, geom := range movedGeoms {
 				internalGeoms = append(internalGeoms, geom.Transform(state.Position))
 			}
-		default:
-			return false
 		}
 
 		cg, err := newCollisionGraph(internalGeoms, static, zeroCG, reportDistances)

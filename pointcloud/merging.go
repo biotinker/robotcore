@@ -62,8 +62,8 @@ func MergePointClouds(ctx context.Context, cloudFuncs []CloudAndOffsetFunc, logg
 					batch := make([]PointAndData, 0, batchSize)
 					savedDualQuat := spatialmath.NewZeroPose()
 					pc.Iterate(numLoops, loop, func(p r3.Vector, d Data) bool {
-						if offset != nil {
-							spatialmath.ResetPoseDQTranslation(savedDualQuat, p)
+						if !spatialmath.PoseAlmostEqual(offset, spatialmath.NewZeroPose()) {
+							savedDualQuat.SetTranslation(p)
 							newPose := spatialmath.Compose(offset, savedDualQuat)
 							p = newPose.Point()
 						}

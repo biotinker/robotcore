@@ -327,9 +327,6 @@ func (r MoveOnMapReq) toProtoNew(name string) (*pb.MoveOnMapNewRequest, error) {
 	if err != nil {
 		return nil, err
 	}
-	if r.Destination == nil {
-		return nil, errors.New("must provide a destination")
-	}
 
 	req := &pb.MoveOnMapNewRequest{
 		Name:            name,

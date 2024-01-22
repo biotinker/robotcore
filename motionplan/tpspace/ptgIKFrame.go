@@ -59,14 +59,14 @@ func (pf *ptgIKFrame) Geometries(inputs []referenceframe.Input) (*referenceframe
 func (pf *ptgIKFrame) Transform(inputs []referenceframe.Input) (spatialmath.Pose, error) {
 	if len(inputs) != len(pf.DoF()) && len(inputs) != 2 {
 		// We also want to always support 2 inputs
-		return nil, referenceframe.NewIncorrectInputLengthError(len(inputs), len(pf.DoF()))
+		return spatialmath.Pose{}, referenceframe.NewIncorrectInputLengthError(len(inputs), len(pf.DoF()))
 	}
 	p1 := spatialmath.NewZeroPose()
 	for i := 0; i < len(inputs); i += 2 {
 		dist := math.Abs(inputs[i+1].Value)
 		p2, err := pf.PTG.Transform([]referenceframe.Input{inputs[i], {dist}})
 		if err != nil {
-			return nil, err
+			return spatialmath.Pose{}, err
 		}
 		if inputs[i+1].Value < 0 {
 			p2 = spatialmath.PoseBetween(spatialmath.Compose(p2, flipPose), flipPose)

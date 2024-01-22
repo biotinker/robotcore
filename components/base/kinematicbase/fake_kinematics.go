@@ -41,9 +41,6 @@ func WrapWithFakeDiffDriveKinematics(
 		return nil, err
 	}
 	pt := position.Pose().Point()
-	if sensorNoise == nil {
-		sensorNoise = spatialmath.NewZeroPose()
-	}
 	fk := &fakeDiffDriveKinematics{
 		Base:        b,
 		parentFrame: position.Parent(),
@@ -172,9 +169,6 @@ func WrapWithFakePTGKinematics(
 		return nil, err
 	}
 
-	if sensorNoise == nil {
-		sensorNoise = spatialmath.NewZeroPose()
-	}
 	fk := &fakePTGKinematics{
 		Base:        b,
 		frame:       frame,

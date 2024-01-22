@@ -95,7 +95,7 @@ func (ss *segmenterSource) NextPointCloud(ctx context.Context) (pointcloud.Point
 	for _, cloud := range clouds {
 		cloudCopy := cloud
 		cloudFunc := func(ctx context.Context) (pointcloud.PointCloud, spatialmath.Pose, error) {
-			return cloudCopy, nil, nil
+			return cloudCopy, spatialmath.Pose{}, nil
 		}
 		cloudsWithOffset = append(cloudsWithOffset, cloudFunc)
 	}

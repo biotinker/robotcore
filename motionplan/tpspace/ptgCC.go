@@ -71,14 +71,14 @@ func (ptg *ptgCC) Transform(inputs []referenceframe.Input) (spatialmath.Pose, er
 
 	revPose, err := ptg.circle.Transform([]referenceframe.Input{{-1 * flip * math.Pi}, {-1. * direction * math.Min(dist, reverseDistance)}})
 	if err != nil {
-		return nil, err
+		return spatialmath.Pose{}, err
 	}
 	if dist < reverseDistance {
 		return revPose, nil
 	}
 	fwdPose, err := ptg.circle.Transform([]referenceframe.Input{{flip * math.Pi}, {direction * (dist - reverseDistance)}})
 	if err != nil {
-		return nil, err
+		return spatialmath.Pose{}, err
 	}
 	return spatialmath.Compose(revPose, fwdPose), nil
 }

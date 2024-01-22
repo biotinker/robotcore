@@ -17,7 +17,7 @@ import (
 // end effector as a protobuf ArmPosition. This is performed statelessly without changing any data.
 func ComputePosition(model referenceframe.Frame, joints *pb.JointPositions) (spatialmath.Pose, error) {
 	if len(joints.Values) != len(model.DoF()) {
-		return nil, errors.Errorf(
+		return spatialmath.Pose{}, errors.Errorf(
 			"incorrect number of joints passed to ComputePosition. Want: %d, got: %d",
 			len(model.DoF()),
 			len(joints.Values),
@@ -26,7 +26,7 @@ func ComputePosition(model referenceframe.Frame, joints *pb.JointPositions) (spa
 
 	pose, err := model.Transform(model.InputFromProtobuf(joints))
 	if err != nil {
-		return nil, err
+		return spatialmath.Pose{}, err
 	}
 
 	return pose, nil
@@ -37,14 +37,14 @@ func ComputePosition(model referenceframe.Frame, joints *pb.JointPositions) (spa
 // This is performed statelessly without changing any data.
 func ComputeOOBPosition(model referenceframe.Frame, joints *pb.JointPositions) (spatialmath.Pose, error) {
 	if joints == nil {
-		return nil, referenceframe.ErrNilJointPositions
+		return spatialmath.Pose{}, referenceframe.ErrNilJointPositions
 	}
 	if model == nil {
-		return nil, referenceframe.ErrNilModelFrame
+		return spatialmath.Pose{}, referenceframe.ErrNilModelFrame
 	}
 
 	if len(joints.Values) != len(model.DoF()) {
-		return nil, errors.Errorf(
+		return spatialmath.Pose{}, errors.Errorf(
 			"incorrect number of joints passed to ComputePosition. Want: %d, got: %d",
 			len(model.DoF()),
 			len(joints.Values),
@@ -53,7 +53,7 @@ func ComputeOOBPosition(model referenceframe.Frame, joints *pb.JointPositions) (
 
 	pose, err := model.Transform(model.InputFromProtobuf(joints))
 	if err != nil && !strings.Contains(err.Error(), referenceframe.OOBErrString) {
-		return nil, err
+		return spatialmath.Pose{}, err
 	}
 
 	return pose, nil

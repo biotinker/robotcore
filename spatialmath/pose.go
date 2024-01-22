@@ -21,10 +21,10 @@ const defaultDistanceEpsilon = 1e-8
 // The Point() method returns the position in (x,y,z) mm coordinates,
 // and the Orientation() method returns an Orientation object, which has methods to parametrize
 // the rotation in multiple different representations.
-type Pose interface {
-	Point() r3.Vector
-	Orientation() Orientation
-}
+//~ type Pose interface {
+	//~ Point() r3.Vector
+	//~ Orientation() Orientation
+//~ }
 
 // PoseMap encodes the orientation interface to something serializable and human readable.
 func PoseMap(p Pose) (map[string]interface{}, error) {
@@ -84,7 +84,7 @@ func NewPoseFromDH(a, d, alpha float64) Pose {
 // It converts the poses to dual quaternions and multiplies them together, normalizes the transform and returns a new Pose.
 // Composition does not commute in general, i.e. you cannot guarantee ABx == BAx.
 func Compose(a, b Pose) Pose {
-	result := &dualQuaternion{dualQuaternionFromPose(a).Transformation(dualQuaternionFromPose(b).Number)}
+	result := Pose{a.Transformation(b.Number)}
 
 	// Normalization
 	if vecLen := 1 / quat.Abs(result.Real); vecLen != 1 {
@@ -99,8 +99,8 @@ func Compose(a, b Pose) Pose {
 // PoseBetween returns the difference between two dualQuaternions, that is, the dq which if multiplied by one will give the other.
 // Example: if PoseBetween(a, b) = c, then Compose(a, c) = b.
 func PoseBetween(a, b Pose) Pose {
-	invA := &dualQuaternion{dualquat.ConjQuat(dualQuaternionFromPose(a).Number)}
-	result := &dualQuaternion{invA.Transformation(dualQuaternionFromPose(b).Number)}
+	invA := Pose{dualquat.ConjQuat(a.Number)}
+	result := Pose{invA.Transformation(b.Number)}
 	// Normalization
 	if vecLen := 1 / quat.Abs(result.Real); vecLen != 1 {
 		result.Real.Real *= vecLen
@@ -115,7 +115,7 @@ func PoseBetween(a, b Pose) Pose {
 // Example: if PoseBetweenInverse(a, b) = c, then Compose(c, a) = b
 // PoseBetweenInverse(a, b) is equivalent to Compose(b, PoseInverse(a)).
 func PoseBetweenInverse(a, b Pose) Pose {
-	result := &dualQuaternion{dualQuaternionFromPose(b).Transformation(dualquat.ConjQuat(dualQuaternionFromPose(a).Number))}
+	result := Pose{b.Transformation(dualquat.ConjQuat(a.Number))}
 	// Normalization
 	if vecLen := 1 / quat.Abs(result.Real); vecLen != 1 {
 		result.Real.Real *= vecLen
@@ -129,10 +129,11 @@ func PoseBetweenInverse(a, b Pose) Pose {
 // PoseDelta returns the difference between two dualQuaternion. Useful for measuring distances, NOT to be used for spatial transformations.
 // We use quaternion/angle axis for this because distances are well-defined.
 func PoseDelta(a, b Pose) Pose {
-	return &distancePose{
-		orientation: quat.Mul(b.Orientation().Quaternion(), quat.Conj(a.Orientation().Quaternion())),
-		point:       b.Point().Sub(a.Point()),
-	}
+	orient := Quaternion(quat.Mul(b.Orientation().Quaternion(), quat.Conj(a.Orientation().Quaternion())))
+	return NewPose(
+		b.Point().Sub(a.Point()),
+		&orient,
+	)
 }
 
 // PoseToProtobuf converts a pose to the pose format protobuf expects (which is as OrientationVectorDegrees).
@@ -153,7 +154,7 @@ func PoseToProtobuf(p Pose) *commonpb.Pose {
 // PoseInverse will return the inverse of a pose. So if a given pose p is the pose of A relative to B, PoseInverse(p) will give
 // the pose of B relative to A.
 func PoseInverse(p Pose) Pose {
-	return newDualQuaternionFromPose(p).Invert()
+	return p.Invert()
 }
 
 // Interpolate will return a new Pose that has been interpolated the set amount between two poses.
@@ -211,11 +212,11 @@ func (d *distancePose) Orientation() Orientation {
 	return (*Quaternion)(&d.orientation)
 }
 
-// ResetPoseDQTranslation takes a Pose that must be a dualQuaternion and reset's it's translation.
-func ResetPoseDQTranslation(p Pose, v r3.Vector) {
-	q, ok := p.(*dualQuaternion)
-	if !ok {
-		panic("ResetPoseDQTranslation has to be passed a dual quaternion")
-	}
-	q.SetTranslation(v)
-}
+//~ // ResetPoseDQTranslation takes a Pose that must be a dualQuaternion and reset's it's translation.
+//~ func ResetPoseDQTranslation(p Pose, v r3.Vector) {
+	//~ q, ok := p.(*dualQuaternion)
+	//~ if !ok {
+		//~ panic("ResetPoseDQTranslation has to be passed a dual quaternion")
+	//~ }
+	//~ q.SetTranslation(v)
+//~ }

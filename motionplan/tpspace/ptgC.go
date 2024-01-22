@@ -48,7 +48,7 @@ func (ptg *ptgC) Transform(inputs []referenceframe.Input) (spatialmath.Pose, err
 	turnRad := ptg.maxMMPS / ptg.maxRPS
 
 	if len(inputs) != 2 {
-		return nil, fmt.Errorf("ptgC takes 2 inputs, but received %d", len(inputs))
+		return spatialmath.Pose{}, fmt.Errorf("ptgC takes 2 inputs, but received %d", len(inputs))
 	}
 	alpha := inputs[0].Value
 	dist := inputs[1].Value
@@ -56,7 +56,7 @@ func (ptg *ptgC) Transform(inputs []referenceframe.Input) (spatialmath.Pose, err
 
 	// Check for OOB within FP error
 	if math.Pi-math.Abs(alpha) > math.Pi+floatEpsilon {
-		return nil, fmt.Errorf("ptgC input 0 is limited to [-pi, pi] but received %f", inputs[0])
+		return spatialmath.Pose{}, fmt.Errorf("ptgC input 0 is limited to [-pi, pi] but received %f", inputs[0])
 	}
 
 	if alpha > math.Pi {

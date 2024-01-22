@@ -547,10 +547,6 @@ func (ms *builtIn) newMoveOnMapRequest(
 		return nil, err
 	}
 
-	if req.Destination == nil {
-		return nil, errors.New("destination cannot be nil")
-	}
-
 	// get the SLAM Service from the slamName
 	slamSvc, ok := ms.slamServices[req.SlamName]
 	if !ok {

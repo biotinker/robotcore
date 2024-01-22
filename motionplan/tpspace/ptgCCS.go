@@ -72,7 +72,7 @@ func (ptg *ptgCCS) Transform(inputs []referenceframe.Input) (spatialmath.Pose, e
 
 	revPose, err := ptg.circle.Transform([]referenceframe.Input{{-1 * flip * math.Pi}, {-1. * direction * math.Min(dist, reverseDistance)}})
 	if err != nil {
-		return nil, err
+		return spatialmath.Pose{}, err
 	}
 	if dist < reverseDistance {
 		return revPose, nil
@@ -84,7 +84,7 @@ func (ptg *ptgCCS) Transform(inputs []referenceframe.Input) (spatialmath.Pose, e
 		},
 	)
 	if err != nil {
-		return nil, err
+		return spatialmath.Pose{}, err
 	}
 	arcPose := spatialmath.Compose(revPose, fwdPose)
 	if dist < reverseDistance+fwdArcDistance {
@@ -93,7 +93,7 @@ func (ptg *ptgCCS) Transform(inputs []referenceframe.Input) (spatialmath.Pose, e
 
 	finalPose, err := ptg.circle.Transform([]referenceframe.Input{{0}, {direction * (dist - (fwdArcDistance + reverseDistance))}})
 	if err != nil {
-		return nil, err
+		return spatialmath.Pose{}, err
 	}
 	return spatialmath.Compose(arcPose, finalPose), nil
 }

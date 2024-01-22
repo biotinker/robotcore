@@ -203,9 +203,7 @@ func NewNamedFrame(frame Frame, name string) Frame {
 // NewStaticFrame creates a frame given a pose relative to its parent. The pose is fixed for all time.
 // Pose is not allowed to be nil.
 func NewStaticFrame(name string, pose spatial.Pose) (Frame, error) {
-	if pose == nil {
-		return nil, errors.New("pose is not allowed to be nil")
-	}
+
 	return &staticFrame{&baseFrame{name, []Limit{}}, pose, nil}, nil
 }
 
@@ -217,16 +215,14 @@ func NewZeroStaticFrame(name string) Frame {
 // NewStaticFrameWithGeometry creates a frame given a pose relative to its parent.  The pose is fixed for all time.
 // It also has an associated geometry representing the space that it occupies in 3D space.  Pose is not allowed to be nil.
 func NewStaticFrameWithGeometry(name string, pose spatial.Pose, geometry spatial.Geometry) (Frame, error) {
-	if pose == nil {
-		return nil, errors.New("pose is not allowed to be nil")
-	}
+
 	return &staticFrame{&baseFrame{name, []Limit{}}, pose, geometry}, nil
 }
 
 // Transform returns the pose associated with this static referenceframe.
 func (sf *staticFrame) Transform(input []Input) (spatial.Pose, error) {
 	if len(input) != 0 {
-		return nil, NewIncorrectInputLengthError(len(input), 0)
+		return spatial.Pose{}, NewIncorrectInputLengthError(len(input), 0)
 	}
 	return sf.transform, nil
 }
@@ -307,7 +303,7 @@ func (pf *translationalFrame) Transform(input []Input) (spatial.Pose, error) {
 	err := pf.validInputs(input)
 	// We allow out-of-bounds calculations, but will return a non-nil error
 	if err != nil && !strings.Contains(err.Error(), OOBErrString) {
-		return nil, err
+		return spatial.Pose{}, err
 	}
 	return spatial.NewPoseFromPoint(pf.transAxis.Mul(input[0].Value)), err
 }
@@ -336,7 +332,7 @@ func (pf *translationalFrame) Geometries(input []Input) (*GeometriesInFrame, err
 		return NewGeometriesInFrame(pf.Name(), nil), nil
 	}
 	pose, err := pf.Transform(input)
-	if pose == nil || (err != nil && !strings.Contains(err.Error(), OOBErrString)) {
+	if (err != nil && !strings.Contains(err.Error(), OOBErrString)) {
 		return nil, err
 	}
 	return NewGeometriesInFrame(pf.name, []spatial.Geometry{pf.geometry.Transform(pose)}), err
@@ -385,7 +381,7 @@ func (rf *rotationalFrame) Transform(input []Input) (spatial.Pose, error) {
 	err := rf.validInputs(input)
 	// We allow out-of-bounds calculations, but will return a non-nil error
 	if err != nil && !strings.Contains(err.Error(), OOBErrString) {
-		return nil, err
+		return spatial.Pose{}, err
 	}
 	// Create a copy of the r4aa for thread safety
 	return spatial.NewPoseFromOrientation(&spatial.R4AA{input[0].Value, rf.rotAxis.X, rf.rotAxis.Y, rf.rotAxis.Z}), err

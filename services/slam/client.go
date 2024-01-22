@@ -55,7 +55,7 @@ func (c *client) Position(ctx context.Context) (spatialmath.Pose, string, error)
 
 	resp, err := c.client.GetPosition(ctx, req)
 	if err != nil {
-		return nil, "", err
+		return spatialmath.Pose{}, "", err
 	}
 
 	p := resp.GetPose()

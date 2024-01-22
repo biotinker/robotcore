@@ -80,11 +80,12 @@ func createInjectedSlam(name, pcdPath string, origin spatialmath.Pose) *inject.S
 	injectSlam.PointCloudMapFunc = func(ctx context.Context) (func() ([]byte, error), error) {
 		return getPointCloudMap(filepath.Clean(artifact.MustPath(pcdPath)))
 	}
+	emptyPose := spatialmath.Pose{}
+	if origin == emptyPose {
+		origin = spatialmath.NewZeroPose()
+	}
 	injectSlam.PositionFunc = func(ctx context.Context) (spatialmath.Pose, string, error) {
-		if origin != nil {
-			return origin, "", nil
-		}
-		return spatialmath.NewZeroPose(), "", nil
+		return origin, "", nil
 	}
 	return injectSlam
 }
@@ -225,7 +226,8 @@ func createMoveOnMapEnvironment(
 	geomSize float64,
 	origin spatialmath.Pose,
 ) (kinematicbase.KinematicBase, motion.Service) {
-	if origin == nil {
+	emptyPose := spatialmath.Pose{}
+	if origin == emptyPose {
 		origin = spatialmath.NewZeroPose()
 	}
 	injectSlam := createInjectedSlam("test_slam", pcdPath, origin)

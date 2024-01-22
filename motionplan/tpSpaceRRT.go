@@ -221,12 +221,7 @@ func (mp *tpSpaceRRTMotionPlanner) rrtBackgroundRunner(
 	goalScore := math.Inf(1)
 	for k, v := range rrt.maps.startMap {
 		if v == nil {
-			if k.Pose() != nil {
-				startPose = k.Pose()
-			} else {
-				rrt.solutionChan <- &rrtPlanReturn{planerr: fmt.Errorf("node %v must provide a Pose", k)}
-				return
-			}
+			startPose = k.Pose()
 			break
 		}
 	}
@@ -234,7 +229,6 @@ func (mp *tpSpaceRRTMotionPlanner) rrtBackgroundRunner(
 		if v == nil {
 			// There may be more than one node in the tree which satisfies the goal, i.e. its parent is nil.
 			// However for the purposes of this we can just take the first one we see.
-			if k.Pose() != nil {
 				dist := mp.planOpts.DistanceFunc(&ik.Segment{StartPosition: startPose, EndPosition: k.Pose()})
 				if dist < goalScore {
 					// Update to use the closest goal to the start.
@@ -243,14 +237,11 @@ func (mp *tpSpaceRRTMotionPlanner) rrtBackgroundRunner(
 					goalScore = dist
 					goalNode = k
 				}
-			} else {
-				rrt.solutionChan <- &rrtPlanReturn{planerr: fmt.Errorf("node %v must provide a Pose", k)}
-				return
-			}
 		}
 	}
 	mp.goalNodes = append(mp.goalNodes, goalNode)
 	mp.logger.CDebugf(ctx, "Starting TPspace solving with startMap len %d and goalMap len %d", len(rrt.maps.startMap), len(rrt.maps.goalMap))
+
 
 	publishFinishedPath := func(path []node) {
 		// If we've reached the goal, extract the path from the RRT trees and return
@@ -835,9 +826,6 @@ func (mp *tpSpaceRRTMotionPlanner) make2DTPSpaceDistanceOptions(ptg tpspace.PTGS
 		// When running NearestNeighbor:
 		// StartPosition is the seed/query
 		// EndPosition is the pose already in the RRT tree
-		if seg.StartPosition == nil || seg.EndPosition == nil {
-			return math.Inf(1)
-		}
 		solution, _, err := mp.ptgSolutionAndMetric(ptg, seg.EndPosition, seg.StartPosition)
 
 		if err != nil || solution == nil {
@@ -983,10 +971,10 @@ func (mp *tpSpaceRRTMotionPlanner) attemptSmooth(
 
 func (mp *tpSpaceRRTMotionPlanner) sample(rSeed node, iter int) (node, error) {
 	dist := rSeed.Cost()
-	if dist == 0 {
-		dist = 1.0
-	}
 	rDist := dist * (mp.algOpts.autoBB + float64(iter)*autoBBscale)
+	if rDist < 1. {
+		rDist = 1.
+	}
 	randPosX := float64(mp.randseed.Intn(int(rDist)))
 	randPosY := float64(mp.randseed.Intn(int(rDist)))
 	randPosTheta := math.Pi * (mp.randseed.Float64() - 0.5)

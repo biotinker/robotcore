@@ -93,7 +93,7 @@ func (cfg *LinkConfig) Pose() (spatial.Pose, error) {
 	if cfg.Orientation != nil {
 		orient, err := cfg.Orientation.ParseConfig()
 		if err != nil {
-			return nil, err
+			return spatial.Pose{}, err
 		}
 		return spatial.NewPose(pt, orient), nil
 	}

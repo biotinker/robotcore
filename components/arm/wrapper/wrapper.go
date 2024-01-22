@@ -111,7 +111,7 @@ func (wrapper *Arm) EndPosition(ctx context.Context, extra map[string]interface{
 
 	joints, err := wrapper.JointPositions(ctx, extra)
 	if err != nil {
-		return nil, err
+		return spatialmath.Pose{}, err
 	}
 	return motionplan.ComputeOOBPosition(wrapper.model, joints)
 }
