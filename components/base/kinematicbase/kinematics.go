@@ -23,9 +23,11 @@ type KinematicBase interface {
 	referenceframe.InputEnabled
 
 	Kinematics() referenceframe.Frame
-	// ErrorState takes a complete motionplan, as well as the index of the currently-executing set of inputs, and computes the pose
-	// difference between where the robot in fact is, and where it ought to be.
+	// ErrorState returns the pose difference between where the robot in fact is, and where it ought to be.
 	ErrorState(context.Context) (spatialmath.Pose, error)
+	
+	// ExecutionState describes the currently executing plan, the index currently executing, and the inputs within the current trajectory.
+	ExecutionState(context.Context) (motionplan.ExecutionState, error)
 }
 
 const (

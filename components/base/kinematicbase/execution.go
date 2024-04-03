@@ -184,6 +184,10 @@ func (ptgk *ptgBaseKinematics) GoToInputs(ctx context.Context, inputSteps ...[]r
 	return tryStop(nil)
 }
 
+func (ptgk *ptgBaseKinematics) ExecutionState(ctx context.Context) (motionplan.ExecutionState, error) {
+	
+}
+
 func (ptgk *ptgBaseKinematics) arcStepsFromInputs(inputSteps [][]referenceframe.Input, startPose spatialmath.Pose) ([]arcStep, error) {
 	var arcSteps []arcStep
 	runningPose := startPose

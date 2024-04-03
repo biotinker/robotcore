@@ -22,6 +22,14 @@ type Plan interface {
 	Path() Path
 }
 
+// ExecutionState describes a Plan, the index of the trajectory currently being executed on that plan, and the inputs describing the
+// current state of execution along that trajectory.
+type ExecutionState struct {
+	Plan Plan
+	CurrentIndex int
+	CurentInputs map[string][]referenceframe.Input
+}
+
 // RemainingPlan returns a new Plan equal to the given plan from the waypointIndex onwards.
 func RemainingPlan(plan Plan, waypointIndex int) (Plan, error) {
 	if waypointIndex < 0 {
@@ -37,7 +45,7 @@ func RemainingPlan(plan Plan, waypointIndex int) (Plan, error) {
 	}
 	simplePlan := NewSimplePlan(path[waypointIndex:], traj[waypointIndex:])
 	if rrt, ok := plan.(*rrtPlan); ok {
-		return &rrtPlan{SimplePlan: *simplePlan, nodes: rrt.nodes[waypointIndex:]}, nil
+		return &rrtPlan{Plan: simplePlan, nodes: rrt.nodes[waypointIndex:]}, nil
 	}
 	return simplePlan, nil
 }
@@ -59,7 +67,7 @@ func OffsetPlan(plan Plan, offset spatialmath.Pose) Plan {
 	}
 	simplePlan := NewSimplePlan(newPath, plan.Trajectory())
 	if rrt, ok := plan.(*rrtPlan); ok {
-		return &rrtPlan{SimplePlan: *simplePlan, nodes: rrt.nodes}
+		return &rrtPlan{Plan: simplePlan, nodes: rrt.nodes}
 	}
 	return simplePlan
 }
@@ -225,28 +233,28 @@ func NewGeoPlan(plan Plan, pt *geo.Point) Plan {
 }
 
 // SimplePlan is a struct containing a Path and a Trajectory, together these comprise a Plan.
-type SimplePlan struct {
+type simplePlan struct {
 	path Path
 	traj Trajectory
 }
 
 // NewSimplePlan instantiates a new Plan from a Path and Trajectory.
-func NewSimplePlan(path Path, traj Trajectory) *SimplePlan {
+func NewSimplePlan(path Path, traj Trajectory) Plan {
 	if path == nil {
 		path = Path{}
 	}
 	if traj == nil {
 		traj = Trajectory{}
 	}
-	return &SimplePlan{path: path, traj: traj}
+	return &simplePlan{path: path, traj: traj}
 }
 
 // Path returns the Path associated with the Plan.
-func (plan *SimplePlan) Path() Path {
+func (plan *simplePlan) Path() Path {
 	return plan.path
 }
 
 // Trajectory returns the Trajectory associated with the Plan.
-func (plan *SimplePlan) Trajectory() Trajectory {
+func (plan *simplePlan) Trajectory() Trajectory {
 	return plan.traj
 }

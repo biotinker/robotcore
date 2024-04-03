@@ -428,16 +428,18 @@ IK:
 // with an error with additional collision details.
 func CheckPlan(
 	checkFrame frame.Frame,
-	plan Plan,
-	wayPointIdx int,
+	executionState ExecutionState,
 	worldState *frame.WorldState,
 	fs frame.FrameSystem,
 	currentPose spatialmath.Pose,
-	currentInputs map[string][]frame.Input,
 	errorState spatialmath.Pose,
 	lookAheadDistanceMM float64,
 	logger logging.Logger,
 ) error {
+	plan := executionState.Plan
+	wayPointIdx := executionState.CurrentIndex
+	currentInputs := executionState.CurentInputs
+	
 	// ensure that we can actually perform the check
 	if len(plan.Path()) < 1 {
 		return errors.New("plan must have at least one element")
