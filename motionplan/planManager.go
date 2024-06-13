@@ -253,6 +253,7 @@ func (pm *planManager) planAtomicWaypoints(
 		if err != nil {
 			return nil, err
 		}
+		fmt.Println("steps", steps)
 		resultSlices = append(resultSlices, steps...)
 	}
 

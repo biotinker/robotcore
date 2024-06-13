@@ -247,6 +247,10 @@ func extractPath(startMap, goalMap map[node]node, pair *nodePair, matched bool) 
 			goalReached = goalMap[goalReached]
 		}
 	}
+	// If we started at the goal, we will only have one node; double it.
+	if len(path) == 1 {
+		path = append(path, path[0])
+	}
 	return path
 }
 
