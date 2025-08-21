@@ -135,21 +135,30 @@ func (ik *nloptIK) Solve(ctx context.Context,
 			// if statement is faster.
 			for i := range gradient {
 				jumpVal = jump[i]
-				flip := false
-				checkVals[i] += jumpVal
+				lb := lowerBound[i]
 				ub := upperBound[i]
-				if checkVals[i] >= ub {
-					flip = true
-					checkVals[i] -= 2 * jumpVal
-				}
 
-				dist2 := minFunc(checkVals)
-				gradient[i] = (dist2 - dist) / jumpVal
-				if flip {
+				// Check if we can use central differences (both forward and backward steps are within bounds)
+				if checkVals[i]+jumpVal <= ub && checkVals[i]-jumpVal >= lb {
+					// Central difference: (f(x+jump) - f(x-jump)) / (2*jump)
 					checkVals[i] += jumpVal
-					gradient[i] *= -1
-				} else {
+					distForward := minFunc(checkVals)
+					checkVals[i] -= 2 * jumpVal // Now at x-jump
+					distBackward := minFunc(checkVals)
+					checkVals[i] += jumpVal // Restore to original value
+					gradient[i] = (distForward - distBackward) / (2 * jumpVal)
+				} else if checkVals[i]+jumpVal > ub {
+					// Near upper bound: use backward difference
 					checkVals[i] -= jumpVal
+					dist2 := minFunc(checkVals)
+					checkVals[i] += jumpVal
+					gradient[i] = (dist - dist2) / jumpVal
+				} else {
+					// Near lower bound: use forward difference
+					checkVals[i] += jumpVal
+					dist2 := minFunc(checkVals)
+					checkVals[i] -= jumpVal
+					gradient[i] = (dist2 - dist) / jumpVal
 				}
 			}
 		}
