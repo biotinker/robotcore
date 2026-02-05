@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/geo/r3"
 	"github.com/shirou/gopsutil/v3/mem"
 	"go.uber.org/multierr"
 	"go.viam.com/utils/trace"
@@ -61,12 +60,29 @@ func IsTooSmallForCache() bool {
 
 type smartSeedCacheEntry struct {
 	inputs []referenceframe.Input
-	pt     r3.Vector
+	pose   spatialmath.Pose
 }
 
-type goalCacheBox struct {
-	center  r3.Vector
-	entries []smartSeedCacheEntry
+// poseDistanceWeightPosition is the weight for position distance (mm) in the combined pose metric.
+const poseDistanceWeightPosition = 1.0
+
+// poseDistanceWeightOrientation is the weight for orientation distance (radians) in the combined pose metric.
+// Scaled so that 1 radian of orientation difference ≈ 100mm of position difference.
+const poseDistanceWeightOrientation = 100.0
+
+// poseDistance computes a weighted distance between two poses in SE(3),
+// combining Euclidean position distance with geodesic orientation distance.
+func poseDistance(a, b spatialmath.Pose) float64 {
+	posDist := a.Point().Distance(b.Point())
+	orientDist := spatialmath.QuatToR3AA(
+		spatialmath.OrientationBetween(a.Orientation(), b.Orientation()).Quaternion(),
+	).Norm2()
+	return poseDistanceWeightPosition*posDist + poseDistanceWeightOrientation*orientDist
+}
+
+// cacheEntryDistance computes poseDistance between two cache entries.
+func cacheEntryDistance(a, b *smartSeedCacheEntry) float64 {
+	return poseDistance(a.pose, b.pose)
 }
 
 func newCacheForFrame(f referenceframe.Frame, logger logging.Logger) (*cacheForFrame, error) {
@@ -128,22 +144,9 @@ type cacheForFrame struct {
 	entriesForCacheBuilding [][]smartSeedCacheEntry
 	totalSize               int
 
-	maxNorm                    float64
-	minCartesian, maxCartesian r3.Vector
+	maxNorm float64
 
-	boxes map[string]*goalCacheBox // hash to list
-}
-
-func (cff *cacheForFrame) boxKeyCompute(value, min, max float64) int { //nolint: revive
-	x := (value - min) / (max - min)
-	return int(x * 100)
-}
-
-func (cff *cacheForFrame) boxKey(p r3.Vector) string {
-	x := cff.boxKeyCompute(p.X, cff.minCartesian.X, cff.maxCartesian.X)
-	y := cff.boxKeyCompute(p.Y, cff.minCartesian.Y, cff.maxCartesian.Y)
-	z := cff.boxKeyCompute(p.Z, cff.minCartesian.Z, cff.maxCartesian.Z)
-	return fmt.Sprintf("%0.3d%0.3d%0.3d", x, y, z)
+	tree *VPTree[*smartSeedCacheEntry]
 }
 
 var (
@@ -209,86 +212,38 @@ func (cff *cacheForFrame) addToCache(frame referenceframe.Frame, inputsNotMine [
 		return err
 	}
 
-	cff.entriesForCacheBuilding[t] = append(cff.entriesForCacheBuilding[t], smartSeedCacheEntry{inputs, p.Point()})
+	cff.entriesForCacheBuilding[t] = append(cff.entriesForCacheBuilding[t], smartSeedCacheEntry{inputs, p})
 
 	return nil
 }
 
 func (cff *cacheForFrame) buildInverseCache() {
-	cff.boxes = map[string]*goalCacheBox{}
 	cff.totalSize = 0
-
-	for _, l := range cff.entriesForCacheBuilding {
-		for _, e := range l {
-			p := e.pt
-			cff.minCartesian.X = min(cff.minCartesian.X, p.X)
-			cff.minCartesian.Y = min(cff.minCartesian.Y, p.Y)
-			cff.minCartesian.Z = min(cff.minCartesian.Z, p.Z)
-
-			cff.maxCartesian.X = max(cff.maxCartesian.X, p.X)
-			cff.maxCartesian.Y = max(cff.maxCartesian.Y, p.Y)
-			cff.maxCartesian.Z = max(cff.maxCartesian.Z, p.Z)
-
-			cff.totalSize++
-		}
-	}
-
 	cff.maxNorm = 0.0
 
+	// Collect all entries and compute maxNorm.
+	allEntries := make([]*smartSeedCacheEntry, 0)
 	for _, l := range cff.entriesForCacheBuilding {
-		for _, e := range l {
-			key := cff.boxKey(e.pt)
-			box, ok := cff.boxes[key]
-			if !ok {
-				box = &goalCacheBox{}
-				cff.boxes[key] = box
-			}
-			box.entries = append(box.entries, e)
-
-			box.center = box.center.Add(e.pt)
-
-			cff.maxNorm = max(cff.maxNorm, e.pt.Norm())
+		for i := range l {
+			e := &l[i]
+			cff.maxNorm = max(cff.maxNorm, e.pose.Point().Norm())
+			allEntries = append(allEntries, e)
 		}
 	}
+	cff.totalSize = len(allEntries)
 
-	for _, box := range cff.boxes {
-		box.center = box.center.Mul(1.0 / float64(len(box.entries)))
-	}
+	// Build VP-tree over all entries using combined pose distance.
+	cff.tree = NewVPTree(allEntries, cacheEntryDistance)
 
 	cff.entriesForCacheBuilding = nil
 }
 
-func (cff *cacheForFrame) findBoxes(goalPose spatialmath.Pose) []*goalCacheBox {
-	type e struct {
-		b *goalCacheBox
-		d float64
-	}
+// vpNeighborCount is the number of nearest neighbors to retrieve from the VP-tree.
+const vpNeighborCount = 500
 
-	goalPoint := goalPose.Point()
-
-	best := []e{}
-	bestScore := cff.minCartesian.Distance(cff.maxCartesian) / 20
-
-	for _, b := range cff.boxes {
-		d := goalPoint.Distance(b.center)
-		if d > bestScore*10 {
-			continue
-		}
-		bestScore = min(d, bestScore)
-		best = append(best, e{b, d})
-	}
-
-	sort.Slice(best, func(a, b int) bool {
-		return best[a].d < best[b].d
-	})
-
-	boxes := []*goalCacheBox{}
-
-	for i := 0; i < 100 && i < len(best); i++ {
-		boxes = append(boxes, best[i].b)
-	}
-
-	return boxes
+func (cff *cacheForFrame) findNearest(goalPose spatialmath.Pose) []vpCandidate[*smartSeedCacheEntry] {
+	query := &smartSeedCacheEntry{pose: goalPose}
+	return cff.tree.NearestK(query, vpNeighborCount)
 }
 
 type smartSeedCache struct {
@@ -475,10 +430,6 @@ type entry struct {
 	cost     float64
 }
 
-func myDistance(start, end r3.Vector) float64 {
-	return end.Distance(start)
-}
-
 func myCost(start, end []float64) float64 {
 	cost := 0.0
 	m := 1.0
@@ -518,25 +469,22 @@ func (ssc *smartSeedCache) findSeedsForFrame(
 		return nil, nil, err
 	}
 
-	startDistance := myDistance(startPose.Point(), goalPoint)
+	startDistance := poseDistance(startPose, goalPose)
+
+	candidates := ssc.rawCache[frameName].findNearest(goalPose)
+
+	logger.Infof("startDistance: %v num candidates: %d", startDistance, len(candidates))
 
 	best := []entry{}
 
-	boxes := ssc.rawCache[frameName].findBoxes(goalPose)
-
-	logger.Infof("startDistance: %v num boxes: %d", startDistance, len(boxes))
-
-	for _, b := range boxes {
-		for _, c := range b.entries {
-			distance := myDistance(goalPoint, c.pt)
-			if distance > startDistance {
-				// we're further than we started, so don't bother
-				continue
-			}
-
-			cost := myCost(start, c.inputs)
-			best = append(best, entry{&c, distance, cost})
+	for _, c := range candidates {
+		if c.dist > startDistance {
+			// we're further than we started, so don't bother
+			continue
 		}
+
+		cost := myCost(start, c.point.inputs)
+		best = append(best, entry{c.point, c.dist, cost})
 	}
 
 	if len(best) == 0 {
@@ -544,7 +492,6 @@ func (ssc *smartSeedCache) findSeedsForFrame(
 	}
 
 	// sort by distance then cut
-
 	sort.Slice(best, func(i, j int) bool {
 		return best[i].distance < best[j].distance
 	})
@@ -562,7 +509,7 @@ func (ssc *smartSeedCache) findSeedsForFrame(
 
 	best = best[0:cutIdx]
 
-	// sort by cst then cut
+	// sort by cost then cut
 	sort.Slice(best, func(i, j int) bool {
 		return best[i].cost < best[j].cost
 	})
