@@ -66,17 +66,29 @@ type smartSeedCacheEntry struct {
 // poseDistanceWeightPosition is the weight for position distance (mm) in the combined pose metric.
 const poseDistanceWeightPosition = 1.0
 
-// poseDistanceWeightOrientation is the weight for orientation distance (radians) in the combined pose metric.
-// Scaled so that 1 radian of orientation difference ≈ 100mm of position difference.
-const poseDistanceWeightOrientation = 100.0
+// poseDistanceWeightOrientation is the weight for orientation distance in the combined pose metric.
+// The chordal distance ranges [0, sqrt(2)] ≈ [0, 1.41] for [0°, 180°].
+// Weight of 200 means 1 radian of orientation difference ≈ 100mm of position difference.
+const poseDistanceWeightOrientation = 200.0
 
 // poseDistance computes a weighted distance between two poses in SE(3),
-// combining Euclidean position distance with geodesic orientation distance.
+// combining Euclidean position distance with chordal orientation distance.
+// Uses quaternion dot product for orientation: sqrt(2*(1 - |q1·q2|)).
+// This is a true metric, much cheaper than the geodesic (no atan2).
 func poseDistance(a, b spatialmath.Pose) float64 {
 	posDist := a.Point().Distance(b.Point())
-	orientDist := spatialmath.QuatToR3AA(
-		spatialmath.OrientationBetween(a.Orientation(), b.Orientation()).Quaternion(),
-	).Norm2()
+
+	q1 := a.Orientation().Quaternion()
+	q2 := b.Orientation().Quaternion()
+	dot := q1.Real*q2.Real + q1.Imag*q2.Imag + q1.Jmag*q2.Jmag + q1.Kmag*q2.Kmag
+	if dot < 0 {
+		dot = -dot
+	}
+	if dot > 1 {
+		dot = 1
+	}
+	orientDist := math.Sqrt(2 * (1 - dot))
+
 	return poseDistanceWeightPosition*posDist + poseDistanceWeightOrientation*orientDist
 }
 
@@ -150,7 +162,8 @@ type cacheForFrame struct {
 }
 
 var (
-	arm6JogRatios  = []float64{120, 48, 16, 0, 0, 0}
+	//~ arm6JogRatios  = []float64{120, 48, 16, 0, 0, 0}
+	arm6JogRatios  = []float64{120, 48, 16, 4, 4, 4}
 	defaultDivisor = 10.0
 )
 
