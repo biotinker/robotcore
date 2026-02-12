@@ -14,12 +14,13 @@ var ErrNoModelInformation = errors.New("no model information")
 
 // ModelConfigJSON represents all supported fields in a kinematics JSON file.
 type ModelConfigJSON struct {
-	Name         string          `json:"name"`
-	KinParamType string          `json:"kinematic_param_type,omitempty"`
-	Links        []LinkConfig    `json:"links,omitempty"`
-	Joints       []JointConfig   `json:"joints,omitempty"`
-	DHParams     []DHParamConfig `json:"dhParams,omitempty"`
-	OriginalFile *ModelFile
+	Name               string          `json:"name"`
+	KinParamType       string          `json:"kinematic_param_type,omitempty"`
+	Links              []LinkConfig    `json:"links,omitempty"`
+	Joints             []JointConfig   `json:"joints,omitempty"`
+	DHParams           []DHParamConfig `json:"dhParams,omitempty"`
+	PrimaryOutputFrame string          `json:"primary_output_frame,omitempty"`
+	OriginalFile       *ModelFile
 }
 
 // ModelFile is a struct that stores the raw bytes of the file used to create the model as well as its extension,
@@ -121,11 +122,15 @@ func (cfg *ModelConfigJSON) ParseConfig(modelName string) (Model, error) {
 	}
 
 	// Determine primary output frame
-	var primaryOutput string
-	if len(leaves) == 1 {
-		primaryOutput = leaves[0]
-	} else {
-		return nil, fmt.Errorf("%w; have %v", ErrNeedOneEndEffector, leaves)
+	primaryOutput := cfg.PrimaryOutputFrame
+	if primaryOutput == "" {
+		if len(leaves) == 1 {
+			primaryOutput = leaves[0]
+		} else {
+			return nil, fmt.Errorf("%w; have %v", ErrNeedPrimaryOutputFrame, leaves)
+		}
+	} else if internalFS.Frame(primaryOutput) == nil {
+		return nil, fmt.Errorf("primary_output_frame %q not found in model", primaryOutput)
 	}
 
 	model, err := NewModel(modelName, internalFS, primaryOutput)

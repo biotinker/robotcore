@@ -60,8 +60,8 @@ func TestParseJSONFile(t *testing.T) {
 		ErrCircularReference,
 		NewReservedWordError("link", "world"),
 		NewReservedWordError("joint", "world"),
-		ErrCircularReference,  // DH param named "world" creates a cycle with the implicit world parent
-		ErrNeedOneEndEffector, // 2 end effectors
+		ErrCircularReference,      // DH param named "world" creates a cycle with the implicit world parent
+		ErrNeedPrimaryOutputFrame, // 2 end effectors, no primary_output_frame set
 	}
 
 	for _, f := range goodFiles {

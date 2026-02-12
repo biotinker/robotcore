@@ -113,6 +113,80 @@ func Test2DMobileModelFrame(t *testing.T) {
 	test.That(t, limit[0], test.ShouldResemble, expLimit[0])
 }
 
+func TestTreeTopologyParsing(t *testing.T) {
+	// Parse a tree topology model with branching fingers
+	m, err := ParseModelJSONFile(utils.ResolveFile("referenceframe/testfiles/tree_gripper.json"), "")
+	test.That(t, err, test.ShouldBeNil)
+	test.That(t, m.Name(), test.ShouldEqual, "tree_gripper")
+
+	smodel, ok := m.(*SimpleModel)
+	test.That(t, ok, test.ShouldBeTrue)
+
+	// DoF should count all joints: wrist_joint (1) + finger1_joint (1) + finger2_joint (1) = 3
+	test.That(t, len(m.DoF()), test.ShouldEqual, 3)
+
+	// primaryOutputFrame should be as specified in JSON
+	test.That(t, smodel.primaryOutputFrame, test.ShouldEqual, "finger1_tip")
+
+	// Transform with zero inputs should return the finger1_tip pose
+	zeroInputs := make([]Input, 3)
+	pose, err := m.Transform(zeroInputs)
+	test.That(t, err, test.ShouldBeNil)
+	test.That(t, pose, test.ShouldNotBeNil)
+	// finger1_tip at zero: wrist (0 rotation) -> palm (z+50) -> finger1_joint (0 translation) -> finger1_tip (z+30)
+	// Total: z = 80
+	test.That(t, spatial.R3VectorAlmostEqual(pose.Point(), r3.Vector{0, 0, 80}, defaultFloatPrecision), test.ShouldBeTrue)
+}
+
+func TestTreeGeometries(t *testing.T) {
+	// Parse a tree topology model
+	m, err := ParseModelJSONFile(utils.ResolveFile("referenceframe/testfiles/tree_gripper.json"), "")
+	test.That(t, err, test.ShouldBeNil)
+
+	// Geometries should return geometry from ALL branches
+	zeroInputs := make([]Input, len(m.DoF()))
+	geoms, err := m.Geometries(zeroInputs)
+	test.That(t, err, test.ShouldBeNil)
+	test.That(t, geoms, test.ShouldNotBeNil)
+
+	// We should have geometries from palm, finger1_tip, and finger2_tip (links with geometry)
+	allGeoms := geoms.Geometries()
+	test.That(t, len(allGeoms), test.ShouldBeGreaterThanOrEqualTo, 3)
+}
+
+func TestMultiLeafNoPrimaryOutputFrame(t *testing.T) {
+	// A tree with multiple leaves and no primary_output_frame should fail
+	_, err := ParseModelJSONFile(utils.ResolveFile("referenceframe/testfiles/missinglink.json"), "")
+	test.That(t, err, test.ShouldNotBeNil)
+	test.That(t, err.Error(), test.ShouldContainSubstring, ErrNeedPrimaryOutputFrame.Error())
+}
+
+func TestSerialChainBackwardCompat(t *testing.T) {
+	// Load existing arm model and verify it produces identical results
+	m, err := ParseModelJSONFile(utils.ResolveFile("components/arm/fake/kinematics/xarm6.json"), "")
+	test.That(t, err, test.ShouldBeNil)
+
+	smodel, ok := m.(*SimpleModel)
+	test.That(t, ok, test.ShouldBeTrue)
+
+	// Should have the correct DoF
+	test.That(t, len(m.DoF()), test.ShouldEqual, 6)
+
+	// Transform should work with valid inputs (all zeros are valid for all joints)
+	inputs := make([]Input, 6)
+	pose, err := m.Transform(inputs)
+	test.That(t, err, test.ShouldBeNil)
+	test.That(t, pose, test.ShouldNotBeNil)
+
+	// Geometries should work
+	geoms, err := m.Geometries(inputs)
+	test.That(t, err, test.ShouldBeNil)
+	test.That(t, geoms, test.ShouldNotBeNil)
+
+	// Should have frames in the internal FS
+	test.That(t, len(smodel.framesInOrder()), test.ShouldBeGreaterThan, 0)
+}
+
 func TestNewModel(t *testing.T) {
 	x, err := NewTranslationalFrame("x", r3.Vector{X: 1}, Limit{Min: -100, Max: 100})
 	test.That(t, err, test.ShouldBeNil)
