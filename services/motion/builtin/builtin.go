@@ -650,7 +650,6 @@ func waypointsFromRequest(
 		if len(startState.Configuration()) == 0 {
 			return nil, nil, fmt.Errorf("can't specify start_state without joint configuration")
 		}
-		startState = fillMissingConfiguration(startState, fsInputs)
 	} else {
 		startState = armplanning.NewPlanState(nil, fsInputs)
 	}
