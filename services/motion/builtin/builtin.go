@@ -611,6 +611,25 @@ func (ms *builtIn) applyDefaultExtras(extras map[string]any) {
 	}
 }
 
+// fillMissingConfiguration returns a new PlanState with any frames missing from ps's configuration
+// filled in from fsInputs. If ps has no configuration, it is returned unchanged.
+func fillMissingConfiguration(ps *armplanning.PlanState, fsInputs referenceframe.FrameSystemInputs) *armplanning.PlanState {
+	cfg := ps.Configuration()
+	if len(cfg) == 0 || len(fsInputs) == 0 {
+		return ps
+	}
+	newCfg := make(referenceframe.FrameSystemInputs, len(fsInputs))
+	for k, v := range cfg {
+		newCfg[k] = v
+	}
+	for k, v := range fsInputs {
+		if _, ok := newCfg[k]; !ok {
+			newCfg[k] = v
+		}
+	}
+	return armplanning.NewPlanState(ps.Poses(), newCfg)
+}
+
 func waypointsFromRequest(
 	req motion.MoveReq,
 	fsInputs referenceframe.FrameSystemInputs,
@@ -631,6 +650,7 @@ func waypointsFromRequest(
 		if len(startState.Configuration()) == 0 {
 			return nil, nil, fmt.Errorf("can't specify start_state without joint configuration")
 		}
+		startState = fillMissingConfiguration(startState, fsInputs)
 	} else {
 		startState = armplanning.NewPlanState(nil, fsInputs)
 	}
@@ -643,7 +663,7 @@ func waypointsFromRequest(
 					if err != nil {
 						return nil, nil, err
 					}
-					waypoints = append(waypoints, wp)
+					waypoints = append(waypoints, fillMissingConfiguration(wp, fsInputs))
 				} else {
 					return nil, nil, errors.New("element in extras waypoints could not be interpreted as map[string]interface{}")
 				}
@@ -660,7 +680,7 @@ func waypointsFromRequest(
 			if err != nil {
 				return nil, nil, err
 			}
-			waypoints = append(waypoints, goalState)
+			waypoints = append(waypoints, fillMissingConfiguration(goalState, fsInputs))
 		} else {
 			return nil, nil, errors.New("extras goal_state could not be interpreted as map[string]interface{}")
 		}

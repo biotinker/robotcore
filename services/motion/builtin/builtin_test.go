@@ -545,6 +545,42 @@ func TestMultiWaypointPlanning(t *testing.T) {
 		finalArmConfig := plan[len(plan)-1]["pieceArm"]
 		test.That(t, finalArmConfig, test.ShouldResemble, goalConfig)
 	})
+
+	// arm_gantry.json has two non-zero-DOF components: arm1 (1 DOF) and gantry1 (1 DOF).
+	// Specifying a goal with joints for only one of them previously caused ComputePoses to
+	// fail because the other component's inputs were absent from the configuration, making
+	// the framesystem unable to compute transforms for any frame in that component's chain.
+	t.Run("plan with goal state configuration specifying only a subset of actuators", func(t *testing.T) {
+		msMulti, teardownMulti := setupMotionServiceFromConfig(t, "../data/arm_gantry.json")
+		defer teardownMulti()
+
+		goalConfig := []float64{0.5}
+		goalState := armplanning.NewPlanState(nil, referenceframe.FrameSystemInputs{
+			"arm1": goalConfig, // gantry1 is intentionally omitted
+		})
+
+		moveReqProto, err := motion.MoveReq{
+			ComponentName: "arm1",
+			Extra: map[string]interface{}{
+				"goal_state":  goalState.Serialize(),
+				"smooth_iter": 5,
+			},
+		}.ToProto("")
+		test.That(t, err, test.ShouldBeNil)
+		bytes, err := protojson.Marshal(moveReqProto)
+		test.That(t, err, test.ShouldBeNil)
+
+		resp, err := msMulti.DoCommand(ctx, map[string]interface{}{
+			DoPlan: string(bytes),
+		})
+		test.That(t, err, test.ShouldBeNil)
+		plan, ok := resp[DoPlan].(motionplan.Trajectory)
+		test.That(t, ok, test.ShouldBeTrue)
+		test.That(t, len(plan), test.ShouldBeGreaterThan, 0)
+
+		// Verify the final arm configuration matches the goal
+		test.That(t, plan[len(plan)-1]["arm1"], test.ShouldResemble, goalConfig)
+	})
 }
 
 func TestConfiguredDefaultExtras(t *testing.T) {
