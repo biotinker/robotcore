@@ -128,6 +128,12 @@ type PlannerOptions struct {
 
 	// Setting indicating that all mesh geometries should be converted into octrees.
 	MeshesAsOctrees bool `json:"meshes_as_octrees"`
+
+	// When enabled, frames with nonzero DOF that are not part of any goal's motion chain
+	// are removed from the FrameSystem before planning. Their geometries are crystallized
+	// at the start position and added as world-frame obstacles. This reduces the dimensionality
+	// of IK/nlopt solving (e.g., from 12 DOF to 6 for a dual-arm robot moving one arm).
+	LockNonmovingJoints bool `json:"lock_nonmoving_joints"`
 }
 
 // NewPlannerOptionsFromExtra returns basic default settings updated by overridden parameters

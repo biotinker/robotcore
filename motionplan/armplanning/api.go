@@ -212,6 +212,18 @@ func PlanMotion(ctx context.Context, parentLogger logging.Logger, request *PlanR
 		return nil, meta, errors.New("must populate start state configuration")
 	}
 
+	// Optionally reduce the FrameSystem to only frames involved in motion chains.
+	// Non-moving DOF frames are crystallized as world-frame obstacles.
+	originalFS := request.FrameSystem
+	var restore *restoreInfo
+	if request.PlannerOptions.LockNonmovingJoints {
+		var err error
+		request, restore, err = reduceToMovingOnly(request)
+		if err != nil {
+			return nil, meta, err
+		}
+	}
+
 	sfPlanner, err := newPlanManager(ctx, logger, request, meta)
 	if err != nil {
 		return nil, meta, err
@@ -230,7 +242,11 @@ func PlanMotion(ctx context.Context, parentLogger logging.Logger, request *PlanR
 
 	meta.GoalsProcessed = goalsProcessed
 
-	t, err := motionplan.NewSimplePlanFromTrajectory(trajAsInps, request.FrameSystem)
+	// If we reduced the FS, expand the trajectory back to full DOF.
+	if restore != nil {
+		trajAsInps = restore.expandTrajectory(trajAsInps)
+	}
+	t, err := motionplan.NewSimplePlanFromTrajectory(trajAsInps, originalFS)
 	if err != nil {
 		return nil, meta, err
 	}
